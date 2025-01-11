@@ -4,9 +4,11 @@
  */
 import { type Request, type Response, type NextFunction } from 'express'
 import { UserModel } from '../models/user'
-import { decode } from 'jsonwebtoken'
+import { jwt } from 'jsonwebtoken'
 import * as security from '../lib/insecurity'
 
+require('dotenv').config()
+const TOKEN_KEY = process.env.TOKEN_KEY
 async function retrieveUserList (req: Request, res: Response, next: NextFunction) {
   try {
     const users = await UserModel.findAll()
@@ -17,8 +19,14 @@ async function retrieveUserList (req: Request, res: Response, next: NextFunction
         const userToken = security.authenticatedUsers.tokenOf(user)
         let lastLoginTime: number | null = null
         if (userToken) {
-          const parsedToken = decode(userToken, { json: true })
-          lastLoginTime = parsedToken ? Math.floor(new Date(parsedToken?.iat ?? 0 * 1000).getTime()) : null
+          try {
+            const decoded = jwt.verify(userToken, TOKEN_KEY)
+            lastLoginTime = decoded ? Math.floor(new Date(decoded.iat * 1000).getTime()) : null
+          } catch (error) {
+            return {
+              auth: 0
+            }
+          }
         }
 
         return {

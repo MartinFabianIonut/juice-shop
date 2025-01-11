@@ -14,6 +14,7 @@ import { DomSanitizer } from '@angular/platform-browser'
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { faArchive, faEye, faHome, faTrashAlt, faUser } from '@fortawesome/free-solid-svg-icons'
 import { MatPaginator } from '@angular/material/paginator'
+import * as DOMPurify from 'dompurify';
 
 library.add(faUser, faEye, faHome, faArchive, faTrashAlt)
 
@@ -41,13 +42,16 @@ export class AdministrationComponent implements OnInit {
     this.findAllFeedbacks()
   }
 
-  findAllUsers () {
+  findAllUsers() {
     this.userService.find().subscribe((users) => {
       this.userDataSource = users
       this.userDataSourceHidden = users
-      for (const user of this.userDataSource) {
-        user.email = this.sanitizer.bypassSecurityTrustHtml(`<span class="${this.doesUserHaveAnActiveSession(user) ? 'confirmation' : 'error'}">${user.email}</span>`)
-      }
+
+      this.userDataSource.forEach(user => {
+        user.email = this.sanitizer.bypassSecurityTrustHtml(
+          DOMPurify.sanitize(`<span class="${this.doesUserHaveAnActiveSession(user) ? 'confirmation' : 'error'}">${user.email}</span>`)
+        )
+      })
       this.userDataSource = new MatTableDataSource(this.userDataSource)
       this.userDataSource.paginator = this.paginatorUsers
       this.resultsLengthUser = users.length

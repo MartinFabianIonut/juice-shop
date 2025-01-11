@@ -16,9 +16,20 @@ const security = require('../lib/insecurity')
 const pug = require('pug')
 const themes = require('../views/themes/themes').themes
 const entities = new Entities()
+const expressLimit = require('express-limit')
+
+const rateLimit = expressLimit({
+  max: 100, // Maximum number of requests allowed within the limitWindow
+  windowMs: 60 * 60 * 1000, // Limit window in milliseconds (1 hour in this case)
+  message: "Too many requests from this IP, please try again after an hour."
+})
 
 module.exports = function getUserProfile () {
   return (req: Request, res: Response, next: NextFunction) => {
+    rateLimit(req, res, (err) => {
+      if (err) {
+        return res.status(429).send("Too many requests from this IP, please try again after an hour.");
+      }
     fs.readFile('views/userProfile.pug', function (err, buf) {
       if (err != null) throw err
       const loggedInUser = security.authenticatedUsers.get(req.cookies.token)
